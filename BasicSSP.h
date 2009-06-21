@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <iostream>
 
 using namespace std;
 
@@ -33,16 +34,16 @@ using namespace std;
  **************************************************/  
 #define MAX_HELLO_INTERVAL 60
 
-void StringSplit(string str, string delim, vector<string> &results) {
+void StringSplit(string str, string delim, vector<string> *results) {
 	int cutAt;
 	while( (cutAt = str.find_first_of(delim)) != str.npos ) {
 		if(cutAt > 0)
 		{
-			results.push_back(str.substr(0,cutAt));
+			results->push_back(str.substr(0,cutAt));
 		}
 		str = str.substr(cutAt+1);
 	}
 	if(str.length() > 0) {
-		results.push_back(str);
+		results->push_back(str);
 	}
 }

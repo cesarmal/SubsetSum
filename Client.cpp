@@ -18,7 +18,7 @@ class Client {
 	string server_ip;
 	static string shared_dir;
     static int sum;
-	static vector<int> subset;
+	static list<int> subset;
 	pthread_t alive_thread;
 	pthread_t send_files_thread;
 
@@ -27,9 +27,8 @@ class Client {
 
 	public:
 
-	Client(const string &ip, const string &dir) {
+	Client(const string &ip) {
 		server_ip = ip;
-		shared_dir = dir;
 
 		/* faz join no servidor e publica seus arquivos */
 		join();
@@ -90,6 +89,14 @@ class Client {
 		}
 	}
 
+	void split_subset(string msg) {
+		vector<string> aux_v;
+		StringSplit(msg,",",&aux_v);	
+		for (int i=0;i<aux_v.size();i++) {
+			subset.push_back(atoi(aux_v[i].c_str()));
+		}		
+	}
+
 	void join() {
 		if(has_joined) {
 			cout << "Error: can not join twice !\n";
@@ -100,17 +107,21 @@ class Client {
 		string result;
 		vector<string> msg_parts;
 		send_data_to(server_ip, SERVER_PORT, msg, result);
-		StringSplit(result,";",msg_parts);
+		StringSplit(result,";",&msg_parts);
+		cout << "before Compare" << endl;
+		cout << msg_parts[0] << endl;
+		cout << "after Compare" << endl;
 		if(msg_parts[0] != "OK") {
 			cout << "Error: could not join - server did not return OK !\n";
 			cout << msg_parts[0] << endl;
 			exit(-1);
 		}
 
+		cout << "before save" << endl;
 		//Salva estrutura de dados no cliente
-		path = msg_parts[0];
-		StringSplit(msg_parts[1],",",subset);	
-		sum = msg_parts[3];
+		shared_dir = msg_parts[0];
+		//split_subset(msg_parts[1]);	
+		sum = atoi(msg_parts[3].c_str());
 
 		has_joined = true;
 		cout << "Has joined to server " << server_ip << endl;
@@ -123,7 +134,7 @@ class Client {
 		DIR *check_is_dir;
 		struct dirent *ep;
      
-		dp = opendir(shared_dir);
+		dp = opendir(shared_dir.c_str());
 		if (dp != NULL) {
 		   while (ep = readdir (dp)) {
 			 string fpath(shared_dir);
@@ -191,7 +202,7 @@ class Client {
 		cout << "SEARCH RETURNED: " << result << endl;
 	}
 
-	void send_data_to(const char *address, int port, const char *data, std::string &answer) {
+	void send_data_to(const string &address, int port, const char *data, std::string &answer) {
 		ClientSocket sock(address, port);
 		sock << data;
 		sock >> answer;
@@ -253,20 +264,21 @@ class Client {
 };
 
 bool Client::has_joined = false;
-char Client::shared_dir[100];
-
+string Client::shared_dir;
+list<int> Client::subset;
+int Client::sum;
 /*
  * Recebe como argumentos o IP do servidor e o diretório com
  * os arquivos a serem compartilhados
  *
  */ 
 int main(int argc, char *argv[]) {
-	if(argc != 3) {
-		cout << "usage: " << argv[0] << " server_ip shared_dir" << endl;
+	if(argc != 2) {
+		cout << "usage: " << argv[0] << " server_ip" << endl;
 		exit(-1);
 	}
 
-	Client c(argv[1], argv[2]);
+	Client c(argv[1]);
 	c.search("est");
 	string fname("teste.txt");
 	c.get_file(fname);
