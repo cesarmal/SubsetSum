@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <iostream>
+#include <fstream>
 
 #define UDP_BUF_LEN 100
 
@@ -115,24 +116,25 @@ class Server {
 	static void process_publish_cmd(std::string &ip, ServerSocket &sock, string &data) {
 		if(Server::clients.count(ip) > 0) {
 			// colocar arquivos nos dados dele
-			int file_init_index = 3;
-			for(int i=3; i < data.size() -1; i++) {
-				if(data[i] == ';' and data[i+1] == ';') {
-					string file = "";
-					file = data.substr(file_init_index, i - file_init_index);
-					//cout << "FILE: " << file << endl;
-					//clients[ip].add_file(file);
-					file_init_index = i + 2;
-					i = i + 2;
-				}
-			}
-			// pegar ultimo arquivo
-			string file = "";
-			file = data.substr(file_init_index, data.size() - file_init_index);
-			//clients[ip].add_file(file);
-
-			//cout << data << endl;
-			sock << "OK";
+            string filename = path+"/myip.out";
+            ifstream myfile (filename.c_str());
+            
+            // file opened? 
+            if (! myfile) { 
+                // NO, abort program 
+                cerr << "can't open input file \"" << filename << "\"" 
+                     << endl; 
+                exit(EXIT_FAILURE); 
+            } 
+            // copy file contents to cout 
+            
+            char c; 
+            while (myfile.get(c)) { 
+                cout.put(c); 
+            } 
+            
+            
+			sock << "NOT OK";
 		} else {
 			; // cliente NÃO existe
 			sock << "You are NOT registered on this server";

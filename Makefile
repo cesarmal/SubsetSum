@@ -1,5 +1,5 @@
 # 
-# Makefile Projeto P2P ==> Protocols de Comunicação.
+# Makefile Projeto SSP ==> Subset Sum Paralel.
 #
 CC=g++ -pthread
 CFLAGS=-c -Wall

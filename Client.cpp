@@ -10,6 +10,7 @@
 #include <iostream>
 #include <list>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 /* teste de alteração */
@@ -38,7 +39,7 @@ class Client {
 		pthread_create(&alive_thread, NULL, &Client::alive, (void*)server_ip.c_str());
 
 		/* cria thread para receber requisicoes de arquivos */
-		pthread_create(&send_files_thread, NULL, &Client::send_files, (void*)shared_dir.c_str());
+		//pthread_create(&send_files_thread, NULL, &Client::send_files, (void*)shared_dir.c_str());
 	};
 
 
@@ -77,18 +78,6 @@ class Client {
 		}
 	}
 
-	static void* send_files(void *shared_dir) {
-		ServerSocket server(FILE_TRANSFER_PORT);
-		while(true) {
-			ServerSocket new_sock;
-			server.accept(new_sock);
-			string fname;
-			new_sock >> fname;
-			//new_sock << "there goes the file ...";
-			send_file(fname, new_sock);
-		}
-	}
-
 	void split_subset(string msg) {
 		vector<string> aux_v;
 		StringSplit(msg,",",&aux_v);	
@@ -108,49 +97,24 @@ class Client {
 		vector<string> msg_parts;
 		send_data_to(server_ip, SERVER_PORT, msg, result);
 		StringSplit(result,";",&msg_parts);
-		cout << "before Compare" << endl;
 		cout << msg_parts[0] << endl;
-		cout << "after Compare" << endl;
 		if(msg_parts[0] != "OK") {
 			cout << "Error: could not join - server did not return OK !\n";
 			cout << msg_parts[0] << endl;
 			exit(-1);
 		}
 
-		cout << "before save" << endl;
 		//Salva estrutura de dados no cliente
-		shared_dir = msg_parts[0];
-		//split_subset(msg_parts[1]);	
-		sum = atoi(msg_parts[3].c_str());
+		shared_dir = msg_parts[3];
+		split_subset(msg_parts[1]);	
+		sum = atoi(msg_parts[2].c_str());
 
 		has_joined = true;
 		cout << "Has joined to server " << server_ip << endl;
 		cout << "Subset received: " << msg_parts[1] << endl;
+		cout << "Shared Dir: " << msg_parts[3] << endl;
 
 	};
-
-	void get_file_list_from_shared_dir(list<string> &l) {
-		DIR *dp;
-		DIR *check_is_dir;
-		struct dirent *ep;
-     
-		dp = opendir(shared_dir.c_str());
-		if (dp != NULL) {
-		   while (ep = readdir (dp)) {
-			 string fpath(shared_dir);
-			 fpath += string(ep->d_name);
-			 check_is_dir = opendir(fpath.c_str());
-			 if(check_is_dir == NULL) {
-				l.push_back(ep->d_name);
-			 }
-		   }
-		   (void) closedir (dp);
-		 } else {
-			 perror ("Couldn't open the directory");
-			 exit(-1);
-		 }
-		 
-	}
 
 	/*
 	 * Manda para o servidor um comando de publish (P)
@@ -158,15 +122,32 @@ class Client {
 	 *
 	 */
 	void publish() {
-		string wts;
+		const char *msg = "P";
 		string result;
-		list<string> files;
-		get_file_list_from_shared_dir(files);
-		pass_to_string(files,wts);
-		vector<char> v(wts.length() + 1);
-		strcpy(&v[0], wts.c_str());
-		char * msg = &v[0];
-		wts = msg;
+		
+		//Mostra todos os elementos da lista
+	    cout << "subset: ";
+        list<int>::iterator p = subset.begin();
+        while(p != subset.end()) {
+            cout << *p << " ";
+            p++;
+        } 
+		cout << endl; 
+		
+		//Salva Arquivo de Tratamento de Subset
+		string filename = shared_dir+"/myip.out";
+		ofstream myfile(filename.c_str(), ios::app);
+		
+        //file opened? 
+        if (!myfile) { 
+            // NO, abort program 
+            cerr << "can't open output file \"" << filename << "\"" 
+                 << endl; 
+            exit (EXIT_FAILURE); 
+        }
+        myfile << "data to file" << endl;
+		
+		//Manda mensagem para o servidor
 		cout << msg << endl;
 		send_data_to(server_ip, SERVER_PORT, msg, result);
 		if(result != "OK") {
@@ -174,93 +155,16 @@ class Client {
 			cout << result << endl;
 			exit(-1);
 		}
-	}
+	}  // closes file automatically
 
-	void pass_to_string(list<string> &l,string &stri) {
-        stri= "P";
-		l.sort();
-		while (!l.empty()){
-			if (l.front() != "."){
-				if (l.front() != ".."){
-					stri = stri + ";;" + l.front();
-					}
-			}	
-			l.pop_front();
-		}
-	}
 
-	/*
-	 * Faz uma busca no servido, enviando um comando de publish (P)
-	 * seguido de uma lista de arquivos separados por ";;".
-	 *
-	 */
-	void search(const char *search_for) {
-		std::string s(search_for);
-		s = "S" + s;
-		std::string result;
-		send_data_to(server_ip, SERVER_PORT, s.c_str(), result);
-		cout << "SEARCH RETURNED: " << result << endl;
-	}
 
 	void send_data_to(const string &address, int port, const char *data, std::string &answer) {
 		ClientSocket sock(address, port);
 		sock << data;
 		sock >> answer;
-	   	//cout << answer << endl;
 	}	
 
-	/*
-	 * Pega um arquivo em outro client.
-	 *
-	 */
-	//void get_file(char *fname, char *sev_addr, int serv_port) {
-	void get_file(string &fname) {
-		ClientSocket sock("127.0.0.1", FILE_TRANSFER_PORT);
-		sock << fname;
-
-		string file_data;
-		string fpath = shared_dir;
-	    fpath += "/";
-		fpath += fname;
-		FILE *fd = fopen(fpath.c_str(), "w");
-		while(sock.recv(file_data) > 0) {
-			fwrite(file_data.c_str(), sizeof(char), file_data.size(), fd);
-		}
-		//sock.close();
-		fclose(fd);
-	}
-
-	/*
-	 * Envia um arquivo para outro Servent.
-	 */
-	static bool send_file(string &fname, ServerSocket &sock) {
-		string fpath = string(Client::shared_dir) + 
-								string("/") + fname;
-	
-		cout << "Sending file: " << fpath << endl;
-			
-		FILE *fd = fopen(fpath.c_str(), "r");
-		if(fd == NULL) {
-			cout << "Error: could not send file " << fpath << endl;
-			return false;
-		}
-
-		char buf[512];
-		ssize_t len;
-
-		while((len = fread(buf, sizeof(char), 512, fd)) > 0) {
-
-			sock << string(buf);
-			/*
-			if(send(sock, buf, len, 0) != len) {
-				perror("Couldn't send data:");
-				return(false);
-		  	}
-			*/
-		}
-		fclose(fd);
-		return true;
-	}
 };
 
 bool Client::has_joined = false;
@@ -279,9 +183,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	Client c(argv[1]);
-	c.search("est");
-	string fname("teste.txt");
-	c.get_file(fname);
+	//c.search("est");
+	//string fname("teste.txt");
+	//c.get_file(fname);
 	sleep(200);
 	return 0;
 }
