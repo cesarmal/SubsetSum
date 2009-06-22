@@ -12,7 +12,7 @@
 #include <vector>
 
 using namespace std;
-
+/* teste de alteração */
 class Client {
 
 	string server_ip;
