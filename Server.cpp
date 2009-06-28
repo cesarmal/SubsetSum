@@ -1,60 +1,21 @@
-#include "ServerSocket.h"
-#include "ClientSocket.h"
-#include "SocketException.h"
-#include "BasicSSP.h"
-#include <string>
-#include <string.h>
 #include <map>
 #include <list>
 #include <stdlib.h>
 #include <pthread.h>
-#include <iostream>
 #include <fstream>
+#include <string.h>
+
+#include "BasicSSP.h"
+#include "ClientData.h"
 
 #define UDP_BUF_LEN 100
-
-using namespace std;
-
-/* 
- *
- * Classe para guardar dados
- * dos clients registrados no servidor.
- *
- */
-class ClientData {
-	private:
-		int last_hello_in_secs;
-		list<std::string> subsets;
-
-	public:
-		ClientData() { last_hello_in_secs = 0; }
-
-		ClientData(const ClientData &s) {
-			last_hello_in_secs = s.last_hello_in_secs;
-		}
-
-		~ClientData() { ; }
-
-		void increment_hello_time() {
-			last_hello_in_secs += 1;
-		}
-
-		void received_hello() {
-			last_hello_in_secs = 0;
-		}
-
-		int get_hello_time() {
-			return last_hello_in_secs;
-		}
-};
-
 
 /*
  *
  * Classe que implementa o servidor P2P.
  *
  */
-class Server {
+class Server: public BasicSSP {
 	
 	char server_ip[30];
 	pthread_t receive_hellos_thread;
@@ -101,19 +62,19 @@ class Server {
 		}
 	}
 
-	static void process_join_cmd(std::string &ip, ServerSocket &sock) {
+	static void process_join(const string &ip, string &answer) {
 		if(Server::clients.count(ip) > 0) {
-			; // cliente já fez join antes ...
-			sock << "You are ALREADY registered on this server" ;
+			// cliente já fez join antes ...
+			answer = "You are ALREADY registered on this server" ;
 		} else {
-			std::string key = ip;
+			string key = ip;
 			ClientData data;
 			Server::clients.insert(make_pair(key, data));
-			sock << "OK;2,3,4,5,10,13;23;" + path;
+			answer = "OK;2,3,4,5,10,13;23;" + path;
 		}
 	}
 
-	static void process_publish_cmd(std::string &ip, ServerSocket &sock, string &data) {
+	static void process_publish(const string &ip, string &answer) {
 		if(Server::clients.count(ip) > 0) {
 			// colocar arquivos nos dados dele
             string filename = path+"/myip.out";
@@ -134,45 +95,27 @@ class Server {
             } 
             
             
-			sock << "NOT OK";
+			answer = "NOT OK";
 		} else {
-			; // cliente NÃO existe
-			sock << "You are NOT registered on this server";
+			answer = "You are NOT registered on this server";
 		}
 	}
 
-	static void* expect_cmds(void *param) {
-		ServerSocket server(SERVER_PORT);
-		while(true) {
-			ServerSocket new_sock;
-			server.accept(new_sock);
-			try {
-				while (true) {
-					std::string data;
-					std:string ip;
-					new_sock >> data;
-					server.get_ip(ip);
-					cout << "IP: " << ip << endl;
-					
-					switch(data[0]) {
-						case 'J':
-							{
-								cout << "Command join received" << endl;
-								process_join_cmd(ip, new_sock);
-								break;
-							}
-						case 'P':
-							{
-								cout << "Command publish received" << endl;
-								process_publish_cmd(ip, new_sock, data);
-								break;
-							}
-					}
+	static void* process_cmd(const string &ip, const string &data, string &answer) {
+		switch(data[0]) {
+			case 'J':
+				{
+					cout << "Command join received" << endl;
+					process_join(ip, answer);
+					break;
 				}
-			} catch(SocketException&) {}
+			case 'P':
+				{
+					cout << "Command publish received" << endl;
+					process_publish(ip, answer);
+					break;
+				}
 		}
-	} catch(SocketException& e) {
-		cout << "Exception was caught:" << e.description() << "\nExiting.\n";
 	}
 
 	/*

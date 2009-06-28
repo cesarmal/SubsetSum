@@ -145,7 +145,8 @@ int Socket::recv ( std::string& s ) const
     }
   else
     {
-      s = buf;
+	  for(int i=0; i<status; i++)
+	    s.push_back(buf[i]);
       return status;
     }
 }

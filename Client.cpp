@@ -1,7 +1,3 @@
-#include "ServerSocket.h"
-#include "ClientSocket.h"
-#include "SocketException.h"
-#include "BasicSSP.h"
 #include <string>
 #include <string.h>
 #include <dirent.h>
@@ -12,16 +8,18 @@
 #include <vector>
 #include <fstream>
 
+#include "BasicSSP.h"
+
 using namespace std;
 /* teste de alteração */
-class Client {
+class Client: public BasicSSP {
 
 	string server_ip;
 	static string shared_dir;
     static int sum;
 	static list<int> subset;
 	pthread_t alive_thread;
-	pthread_t send_files_thread;
+	pthread_t expect_cmds_thread;
 
 	/* identifica se o client já conectou no servidor */
 	static bool has_joined;
@@ -38,8 +36,8 @@ class Client {
 		/* thread para envio de pacotes alive */
 		pthread_create(&alive_thread, NULL, &Client::alive, (void*)server_ip.c_str());
 
-		/* cria thread para receber requisicoes de arquivos */
-		//pthread_create(&send_files_thread, NULL, &Client::send_files, (void*)shared_dir.c_str());
+		/* cria thread para receber comandos do servidor */
+		pthread_create(&expect_cmds_thread, NULL, &Client::expect_cmds, NULL);
 	};
 
 
@@ -156,8 +154,6 @@ class Client {
 			exit(-1);
 		}
 	}  // closes file automatically
-
-
 
 	void send_data_to(const string &address, int port, const char *data, std::string &answer) {
 		ClientSocket sock(address, port);

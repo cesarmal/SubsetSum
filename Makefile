@@ -6,11 +6,11 @@ CFLAGS=-c -Wall
 
 all: servidor cliente
 
-cliente: Client.o ServerSocket.o ClientSocket.o Socket.o
-	$(CC) Client.o ServerSocket.o ClientSocket.o Socket.o -o cliente
+cliente: Client.o ServerSocket.o ClientSocket.o Socket.o BasicSSP.o
+	$(CC) Client.o ServerSocket.o ClientSocket.o Socket.o BasicSSP.o -o cliente
 
-servidor: Server.o ServerSocket.o ClientSocket.o Socket.o
-	$(CC) Server.o ServerSocket.o ClientSocket.o Socket.o -o servidor
+servidor: Server.o ServerSocket.o ClientSocket.o Socket.o ClientData.o BasicSSP.o
+	$(CC) Server.o ServerSocket.o ClientSocket.o Socket.o ClientData.o BasicSSP.o -o servidor
 
 cliente.o: Client.cpp
 	$(CC) $(CFLAGS) Client.cpp
@@ -26,6 +26,12 @@ ClientSocket.o: ClientSocket.cpp
 
 ServerSocket.o: ServerSocket.cpp
 	$(CC) $(CFLAGS) ServerSocket.cpp
+
+ClientData.o: ClientData.cpp
+	$(CC) $(CFLAGS) ClientData.cpp
+
+BasicSSP.o: BasicSSP.cpp
+	$(CC) $(CFLAGS) BasicSSP.cpp
 
 clean:
 	rm -rf *o cliente servidor
