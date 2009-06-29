@@ -41,7 +41,9 @@ using namespace std;
 class BasicSSP  {
 
   public:
-	static void* expect_cmds(void *args); 
     void StringSplit(string str, string delim, vector<string> *results);
-	static void* process_cmd(const string &ip, const string &data, string &answer);
+	/*
+	virtual void* process_cmd(const string &ip, const string &data, string &answer);
+	static void* expect_cmds(void *args); 
+	*/
 };

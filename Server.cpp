@@ -47,6 +47,34 @@ class Server: public BasicSSP {
 		pthread_create(&expect_cmds_thread, NULL, &Server::expect_cmds, NULL);
 	}
 
+	static void* expect_cmds(void *func) {
+		try {
+			ServerSocket server(SERVER_PORT);
+			while(true) {
+				ServerSocket new_sock;
+				server.accept(new_sock);
+				try {
+					while (true) {
+						std::string data;
+						std::string ip;
+						new_sock >> data;
+						server.get_ip(ip);
+						cout << "IP: " << ip << endl;
+						string answer;
+						Server::process_cmd(ip, data, answer);
+						new_sock << answer;
+					}
+				} catch(SocketException&) {}
+			}
+		} catch(SocketException& e) {
+			cout << "Exception was caught:" << e.description() << "\nExiting.\n";
+		}
+		return 0;
+	}
+
+
+
+
 	static void* remove_dead_clients(void *param) {
 		while(true) {
 			map<std::string, ClientData>::iterator it;
@@ -101,7 +129,8 @@ class Server: public BasicSSP {
 		}
 	}
 
-	static void* process_cmd(const string &ip, const string &data, string &answer) {
+	static void process_cmd(const string &ip, const string &data, string &answer) {
+		cout << "" << data[0] << endl;
 		switch(data[0]) {
 			case 'J':
 				{

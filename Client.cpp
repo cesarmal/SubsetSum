@@ -18,8 +18,8 @@ class Client: public BasicSSP {
 	static string shared_dir;
     static int sum;
 	static list<int> subset;
-	pthread_t alive_thread;
-	pthread_t expect_cmds_thread;
+	static pthread_t alive_thread;
+	static pthread_t expect_cmds_thread;
 
 	/* identifica se o client já conectou no servidor */
 	static bool has_joined;
@@ -39,6 +39,52 @@ class Client: public BasicSSP {
 		/* cria thread para receber comandos do servidor */
 		pthread_create(&expect_cmds_thread, NULL, &Client::expect_cmds, NULL);
 	};
+
+	static void* expect_cmds(void *func) {
+		try {
+			ServerSocket server(SERVER_PORT);
+			while(true) {
+				ServerSocket new_sock;
+				server.accept(new_sock);
+				try {
+					while (true) {
+						std::string data;
+						std::string ip;
+						new_sock >> data;
+						server.get_ip(ip);
+						cout << "IP: " << ip << endl;
+						string answer;
+						process_cmd(ip, data, answer);
+						new_sock << answer;
+					}
+				} catch(SocketException&) {}
+			}
+		} catch(SocketException& e) {
+			cout << "Exception was caught:" << e.description() << "\nExiting.\n";
+		}
+		return 0;
+	}
+
+
+	static void process_cmd(const string &ip, const string &data, string &answer) {
+		switch(data[0]) {
+			case 'K':
+				{
+					cout << "Command Kill Received" << endl;
+					process_kill(answer);
+					break;
+				}
+			case 'P':
+				{
+					cout << "Command publish received" << endl;
+					break;
+				}
+		}
+	}
+
+	static void process_kill(string &answer){
+		answer = "All Threads Kill";
+	}
 
 
 	/*
@@ -167,6 +213,10 @@ bool Client::has_joined = false;
 string Client::shared_dir;
 list<int> Client::subset;
 int Client::sum;
+pthread_t Client::alive_thread;
+pthread_t Client::expect_cmds_thread;
+
+
 /*
  * Recebe como argumentos o IP do servidor e o diretório com
  * os arquivos a serem compartilhados
