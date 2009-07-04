@@ -42,6 +42,7 @@ class BasicSSP  {
 
   public:
 		void StringSplit(string str, string delim, vector<string> *results);
+		void StringSplit(string str, string delim, vector<int> *results);
 		void send_data_to(const string &, int ,	const char *, string &);
 	/*
 	virtual void* process_cmd(const string &ip, const string &data, string &answer);

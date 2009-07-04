@@ -4,6 +4,7 @@ ClientData::ClientData() { last_hello_in_secs = 0; }
 
 ClientData ClientData::operator=(const ClientData &s) {
 		last_hello_in_secs = s.last_hello_in_secs;
+		return s; //this is right?
 }
 
 ClientData::~ClientData() { ; }

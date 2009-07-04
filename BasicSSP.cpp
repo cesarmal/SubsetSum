@@ -16,6 +16,20 @@ void BasicSSP::StringSplit(string str, string delim, vector<string> *results) {
 	}
 }
 
+void BasicSSP::StringSplit(string str, string delim, vector<int> *results) {
+	int cutAt;
+	while( (cutAt = str.find_first_of(delim)) != (int)str.npos ) {
+		if(cutAt > 0)
+		{
+			results->push_back(atoi(str.substr(0,cutAt).c_str()));
+		}
+		str = str.substr(cutAt+1);
+	}
+	if(str.length() > 0) {
+		results->push_back(atoi(str.c_str()));
+	}
+}
+
 void BasicSSP::send_data_to(const string &address, int port, 
 								const char *data, std::string &answer) {
 	ClientSocket sock(address, port);
