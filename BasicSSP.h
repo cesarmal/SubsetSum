@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <stdlib.h>
 
 #include "ServerSocket.h"
 #include "SocketException.h"

@@ -4,6 +4,7 @@
 
 #include <map>
 #include <math.h>
+#include <stdlib.h>
 
 #include "BasicSSP.h"
 
