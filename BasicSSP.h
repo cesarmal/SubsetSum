@@ -41,7 +41,8 @@ using namespace std;
 class BasicSSP  {
 
   public:
-    void StringSplit(string str, string delim, vector<string> *results);
+		void StringSplit(string str, string delim, vector<string> *results);
+		void send_data_to(const string &, int ,	const char *, string &);
 	/*
 	virtual void* process_cmd(const string &ip, const string &data, string &answer);
 	static void* expect_cmds(void *args); 

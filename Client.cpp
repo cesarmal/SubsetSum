@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <signal.h>
 #include <iostream>
 #include <list>
 #include <vector>
@@ -42,7 +43,7 @@ class Client: public BasicSSP {
 
 	static void* expect_cmds(void *func) {
 		try {
-			ServerSocket server(SERVER_PORT);
+			ServerSocket server(EXPECT_CMDS_PORT);
 			while(true) {
 				ServerSocket new_sock;
 				server.accept(new_sock);
@@ -83,7 +84,21 @@ class Client: public BasicSSP {
 	}
 
 	static void process_kill(string &answer){
-		answer = "All Threads Kill";
+		bool ok = true;
+		/*
+		if(pthread_kill(alive_thread, SIGHUP) != 0)
+			ok = false;
+		if(pthread_kill(expect_cmds_thread, SIGHUP) != 0)
+			ok = false;
+		*/
+		if(ok) {
+			answer = "OK";
+		} else {
+			answer = "NOT OK";
+		}
+		// pediu pra sair, SAIU !
+		cout << "Life is cruel - server asked me to die ..." << endl;
+		//exit(0);
 	}
 
 
@@ -201,11 +216,7 @@ class Client: public BasicSSP {
 		}
 	}  // closes file automatically
 
-	void send_data_to(const string &address, int port, const char *data, std::string &answer) {
-		ClientSocket sock(address, port);
-		sock << data;
-		sock >> answer;
-	}	
+		
 
 };
 
@@ -229,9 +240,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	Client c(argv[1]);
-	//c.search("est");
-	//string fname("teste.txt");
-	//c.get_file(fname);
 	sleep(200);
 	return 0;
 }

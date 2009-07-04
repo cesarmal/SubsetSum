@@ -72,9 +72,6 @@ class Server: public BasicSSP {
 		return 0;
 	}
 
-
-
-
 	static void* remove_dead_clients(void *param) {
 		while(true) {
 			map<std::string, ClientData>::iterator it;
@@ -122,15 +119,14 @@ class Server: public BasicSSP {
                 cout.put(c); 
             } 
             
-            
-			answer = "NOT OK";
+			answer = "OK";
 		} else {
 			answer = "You are NOT registered on this server";
 		}
 	}
 
 	static void process_cmd(const string &ip, const string &data, string &answer) {
-		cout << "" << data[0] << endl;
+		cout << data[0] << endl;
 		switch(data[0]) {
 			case 'J':
 				{
@@ -183,6 +179,22 @@ class Server: public BasicSSP {
 			//close(iSockFd);
 		}
 	}
+
+	/*
+	 * Manda um comando de KILL para cada um dos clientes.
+	 */
+	void stop_clients() {
+		map<std::string, ClientData>::iterator it;
+      	for(it = clients.begin(); it != clients.end(); ++it) {
+			const char *msg = "K";
+			string answer;
+			send_data_to(it->first, EXPECT_CMDS_PORT, msg, answer);
+			if(answer != "OK") {
+				cout << "Could NOT kill correctly client " << it->first << endl;
+			}
+		}
+		clients.clear();
+	}
 };
 
 map<std::string, ClientData> Server::clients;
@@ -196,7 +208,8 @@ int main(int argc, char *argv[]) {
 	string path(argv[1]);
 	Server server(path);
 	cout << "GET TO WORK !\n" ;
-	sleep(20000);
+	sleep(20);
+	server.stop_clients();
 	return 0;
 }
 
