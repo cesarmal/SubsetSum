@@ -182,8 +182,6 @@ void* init_solver(void* params) {
     pthread_exit(NULL);
 }
 
-pthread_t first_solver;
-pthread_t second_solver;
 pthread_attr_t attr;
 
 int main() {
@@ -193,7 +191,7 @@ int main() {
     struct shared *ptr; 
     string filename = "./file.o";
     bool fileExist=false;
-    int fd;
+    int fd, child;
     
     /* open file, initialize to 0, map into memory */ 
     fileExist = file_exists(filename);
@@ -206,34 +204,62 @@ int main() {
     sem_init(&ptr->mutex,1, 1); 
     setbuf(stdout,NULL);
     
-    //Set struct data
-    struct thread_data data[2];
-    data[0].values = "1,3,6,7,12,2,4,5,8,9,10;70";
-    data[0].piece = 1;
-    data[0].solution = ptr;
-    
-    data[1].values = "1,3,6,7,12,2,4,5,8,9,10;70";
-    data[1].piece = 2;
-    data[1].solution = ptr;
-    
     //Init Joinable Attribute
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     
-    //Create Threads Solvers
-    pthread_create(&first_solver, &attr, &init_solver, &data[0]);
-    //sleep(1);
-    pthread_create(&second_solver, &attr, &init_solver, &data[1]);
+    //Create struct data
+    struct thread_data data[4];
+    
+    if ((child=fork()) == 0) { /* child */ 
+        //Create pthread var
+        pthread_t first_solver;
+        pthread_t second_solver;
+        
+        //Create Threads Solvers: First Fork
+        data[0].values = "1,3,6,7,12,2,4,5,8,9,10;70";
+        data[0].piece = 1;
+        data[0].solution = ptr;
+        pthread_create(&first_solver, &attr, &init_solver, &data[0]);
+        
+        data[1].values = "1,3,6,7,12,2,4,5,8,9,10;70";
+        data[1].piece = 2;
+        data[1].solution = ptr;
+        pthread_create(&second_solver, &attr, &init_solver, &data[1]);
+        
+        //Waiting Joinable Threads
+        pthread_join(first_solver,NULL);
+        pthread_join(second_solver,NULL);
 
-    pthread_attr_destroy(&attr);
+        cout << "JOIN THREADS! - CHILD FORK \n";
+        
+        pthread_exit(NULL);
+    } else {
+        //Create pthread var
+        pthread_t first_solver;
+        pthread_t second_solver;
+        
+        //Create Threads Solvers: First Fork
+        data[0].values = "1,3,6,7,12,2,4,5,8,9,10;70";
+        data[0].piece = 3;
+        data[0].solution = ptr;
+        pthread_create(&first_solver, &attr, &init_solver, &data[0]);
+        
+        data[1].values = "1,3,6,7,12,2,4,5,8,9,10;70";
+        data[1].piece = 4;
+        data[1].solution = ptr;
+        pthread_create(&second_solver, &attr, &init_solver, &data[1]);
+        
+        //Waiting Joinable Threads
+        pthread_join(first_solver,NULL);
+        pthread_join(second_solver,NULL);
 
-    //Waiting Joinable Threads
-    pthread_join(first_solver,NULL);
-    pthread_join(second_solver,NULL);
-
-    cout << "JOIN THREADS! \n";
+        cout << "JOIN THREADS! - PARENT FORK \n";
+    }
+    
+    waitpid(child,0,0);
+    cout << "JOIN FORK! \n";
 	
-	sleep(1);
-
+    pthread_attr_destroy(&attr);    
     pthread_exit(NULL);
 }
