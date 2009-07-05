@@ -202,7 +202,7 @@ string Server::path;
 
 int main(int argc, char *argv[]) {	
 	if(argc != 2) {
-		cout << "usage: " << argv[0] << " shared_dir" << endl;
+		cout << "usage: " << argv[0] << " shared_file" << endl;
 		exit(-1);
 	}
 	string path(argv[1]);

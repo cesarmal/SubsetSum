@@ -6,14 +6,11 @@ CFLAGS=-c -Wall
 
 all: servidor cliente
 
-cliente: Client.o ServerSocket.o ClientSocket.o Socket.o BasicSSP.o
-	$(CC) Client.o ServerSocket.o ClientSocket.o Socket.o BasicSSP.o -o cliente
+cliente: Client.o ServerSocket.o ClientSocket.o Socket.o Solver.o BasicSSP.o 
+	$(CC) Client.o ServerSocket.o ClientSocket.o Socket.o Solver.o BasicSSP.o -o cliente
 
 servidor: Server.o ServerSocket.o ClientSocket.o Socket.o ClientData.o BasicSSP.o
 	$(CC) Server.o ServerSocket.o ClientSocket.o Socket.o ClientData.o BasicSSP.o -o servidor
-
-solver: Solver.o ServerSocket.o ClientSocket.o Socket.o BasicSSP.o
-	$(CC) Solver.o ServerSocket.o ClientSocket.o Socket.o BasicSSP.o -o solver
 
 cliente.o: Client.cpp
 	$(CC) $(CFLAGS) Client.cpp
@@ -40,5 +37,5 @@ Solver.o: Solver.cpp
 	$(CC) $(CFLAGS) Solver.cpp
 
 clean:
-	rm -rf *o cliente servidor solver
+	rm -rf *o cliente servidor
 

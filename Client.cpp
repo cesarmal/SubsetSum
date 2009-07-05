@@ -9,7 +9,8 @@
 #include <vector>
 #include <fstream>
 
-#include "BasicSSP.h"
+#include "Solver.h"
+
 
 using namespace std;
 /* teste de alteração */
@@ -172,6 +173,8 @@ class Client: public BasicSSP {
 		cout << "Has joined to server " << server_ip << endl;
 		cout << "Subset received: " << msg_parts[1] << endl;
 		cout << "Shared Dir: " << msg_parts[3] << endl;
+
+        Solver::solver_process();
 
 	};
 

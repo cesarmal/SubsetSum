@@ -37,6 +37,14 @@ void BasicSSP::send_data_to(const string &address, int port,
 	sock >> answer;
 }
 
+bool BasicSSP::file_exists(string filename) {
+    struct stat stfileinfo;
+    if (stat(filename.c_str(),&stfileinfo)==0) {
+        return true;
+    }
+    return false;
+}
+
 /*
 void* BasicSSP::expect_cmds(void *func) {
 	//(void)(const string &, const string &, string &) process_cmd = func;

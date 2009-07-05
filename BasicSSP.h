@@ -2,6 +2,11 @@
 #include <vector>
 #include <iostream>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sstream>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "ServerSocket.h"
 #include "SocketException.h"
@@ -45,6 +50,7 @@ class BasicSSP  {
 		void StringSplit(string str, string delim, vector<string> *results);
 		void StringSplit(string str, string delim, vector<int> *results);
 		void send_data_to(const string &, int ,	const char *, string &);
+		bool file_exists(string filename);
 	/*
 	virtual void* process_cmd(const string &ip, const string &data, string &answer);
 	static void* expect_cmds(void *args); 
