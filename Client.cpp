@@ -17,6 +17,7 @@ using namespace std;
 class Client: public BasicSSP {
 
 	string server_ip;
+	static int piece;
 	static string shared_dir;
     static int sum;
 	static list<int> subset;
@@ -165,6 +166,7 @@ class Client: public BasicSSP {
 		}
 
 		//Salva estrutura de dados no cliente
+		piece = atoi(msg_parts[4].c_str());
 		shared_dir = msg_parts[3];
 		split_subset(msg_parts[1]);	
 		sum = atoi(msg_parts[2].c_str());
@@ -174,8 +176,9 @@ class Client: public BasicSSP {
 		cout << "Subset received: " << msg_parts[1] << endl;
 		cout << "Shared Dir: " << msg_parts[3] << endl;
 
-        Solver::solver_process();
+        Solver::solver_process(msg_parts[3], msg_parts[1], sum, piece);
 
+        cout << "Now waiting more subsets =)" << endl;
 	};
 
 	/*
@@ -186,29 +189,7 @@ class Client: public BasicSSP {
 	void publish() {
 		const char *msg = "P";
 		string result;
-		
-		//Mostra todos os elementos da lista
-	    cout << "subset: ";
-        list<int>::iterator p = subset.begin();
-        while(p != subset.end()) {
-            cout << *p << " ";
-            p++;
-        } 
-		cout << endl; 
-		
-		//Salva Arquivo de Tratamento de Subset
-		string filename = shared_dir+"/myip.out";
-		ofstream myfile(filename.c_str(), ios::app);
-		
-        //file opened? 
-        if (!myfile) { 
-            // NO, abort program 
-            cerr << "can't open output file \"" << filename << "\"" 
-                 << endl; 
-            exit (EXIT_FAILURE); 
-        }
-        myfile << "data to file" << endl;
-		
+				
 		//Manda mensagem para o servidor
 		cout << msg << endl;
 		send_data_to(server_ip, SERVER_PORT, msg, result);
@@ -227,6 +208,7 @@ bool Client::has_joined = false;
 string Client::shared_dir;
 list<int> Client::subset;
 int Client::sum;
+int Client::piece;
 pthread_t Client::alive_thread;
 pthread_t Client::expect_cmds_thread;
 
@@ -236,12 +218,12 @@ pthread_t Client::expect_cmds_thread;
  * os arquivos a serem compartilhados
  *
  */ 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {    
 	if(argc != 2) {
 		cout << "usage: " << argv[0] << " server_ip" << endl;
 		exit(-1);
 	}
-
+    setbuf(stdout,NULL);
 	Client c(argv[1]);
 	sleep(200);
 	return 0;

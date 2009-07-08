@@ -37,6 +37,22 @@ void BasicSSP::send_data_to(const string &address, int port,
 	sock >> answer;
 }
 
+struct shared* BasicSSP::initializa_mapper(string filename) {
+    int fd;
+    bool fileExist=false;
+    struct shared *ptr; 
+    struct shared sharedStruct;
+    cout << "open\n";
+    fileExist = file_exists(filename);
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO); 
+    if (!fileExist) { write(fd,&sharedStruct, sizeof(struct shared));  }
+    ptr = (struct shared *)mmap(NULL, sizeof(struct shared), PROT_READ | PROT_WRITE, MAP_SHARED,fd, 0); 
+    close(fd); 
+    cout << "close\n";
+    
+    return ptr;
+}
+
 bool BasicSSP::file_exists(string filename) {
     struct stat stfileinfo;
     if (stat(filename.c_str(),&stfileinfo)==0) {

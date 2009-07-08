@@ -8,6 +8,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+//POSIX Includes
+#include <semaphore.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 #include "ServerSocket.h"
 #include "SocketException.h"
 #include "ClientSocket.h"
@@ -44,6 +53,21 @@ using namespace std;
  **************************************************/  
 #define MAX_HELLO_INTERVAL 30
 
+#define MAX_SOLUTION_MAP 1000
+#define MAX_HASH_SIZE 30
+
+struct listMap {
+    int key;
+    int mark;
+    char hash[MAX_HASH_SIZE];
+};
+
+struct shared { 
+  sem_t mutex; /* the mutex: a Posix memory-based semaphore */ 
+  int count; /* and the counter */ 
+  listMap map[MAX_SOLUTION_MAP];
+}; 
+
 class BasicSSP  {
 
   public:
@@ -51,6 +75,7 @@ class BasicSSP  {
 		void StringSplit(string str, string delim, vector<int> *results);
 		void send_data_to(const string &, int ,	const char *, string &);
 		bool file_exists(string filename);
+		struct shared* initializa_mapper(string filename);
 	/*
 	virtual void* process_cmd(const string &ip, const string &data, string &answer);
 	static void* expect_cmds(void *args); 

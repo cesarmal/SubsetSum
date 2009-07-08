@@ -27,14 +27,22 @@ class Server: public BasicSSP {
 	 * A chave é o IP do cliente e o valor associado a cada chave são
 	 * os dados do cliente.
 	 */
-	static string path;
+	static string filename;
 	static map<string, ClientData> clients;
 
 	public:
 
 	Server(const string &p) {
 		cout << p << endl;
-		path = p;
+		filename = p;
+
+        //create or open map file
+        struct shared *ptr;   
+        ptr = initializa_mapper(filename);
+
+        /* initialize semaphore that is shared between processes */ 
+        sem_init(&ptr->mutex,1, 1); 
+        cout << "mutex\n";
 
 		/* thread para receber de pacotes de keep alive */
 		pthread_create(&receive_hellos_thread, NULL, &Server::receive_hellos, NULL);
@@ -95,30 +103,12 @@ class Server: public BasicSSP {
 			string key = ip;
 			ClientData data;
 			Server::clients.insert(make_pair(key, data));
-			answer = "OK;2,3,4,5,10,13;23;" + path;
+			answer = "OK;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20;50;" + filename + ";1"; //[status,subset,sum,filename,piece]
 		}
 	}
 
 	static void process_publish(const string &ip, string &answer) {
-		if(Server::clients.count(ip) > 0) {
-			// colocar arquivos nos dados dele
-            string filename = path+"/myip.out";
-            ifstream myfile (filename.c_str());
-            
-            // file opened? 
-            if (! myfile) { 
-                // NO, abort program 
-                cerr << "can't open input file \"" << filename << "\"" 
-                     << endl; 
-                exit(EXIT_FAILURE); 
-            } 
-            // copy file contents to cout 
-            
-            char c; 
-            while (myfile.get(c)) { 
-                cout.put(c); 
-            } 
-            
+		if(Server::clients.count(ip) > 0) {           
 			answer = "OK";
 		} else {
 			answer = "You are NOT registered on this server";
@@ -198,15 +188,15 @@ class Server: public BasicSSP {
 };
 
 map<std::string, ClientData> Server::clients;
-string Server::path;
+string Server::filename;
 
 int main(int argc, char *argv[]) {	
 	if(argc != 2) {
-		cout << "usage: " << argv[0] << " shared_file" << endl;
+		cout << "usage: " << argv[0] << " shared_file_dir" << endl;
 		exit(-1);
 	}
-	string path(argv[1]);
-	Server server(path);
+	string filename(argv[1]);
+	Server server(filename);
 	cout << "GET TO WORK !\n" ;
 	sleep(20);
 	server.stop_clients();
