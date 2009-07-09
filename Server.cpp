@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <fstream>
+#include <sstream>
 #include <string.h>
 
 #include "BasicSSP.h"
 #include "ClientData.h"
+#include "Subset.h"
 
 #define UDP_BUF_LEN 100
 
@@ -27,18 +29,25 @@ class Server: public BasicSSP {
 	 * A chave é o IP do cliente e o valor associado a cada chave são
 	 * os dados do cliente.
 	 */
-	static string filename;
+	static string shared_mem_fpath, problem_fpath;
 	static map<string, ClientData> clients;
+	static map<string, Subset> subsets;
+	static list<string> set;
+	static string sum;
 
 	public:
 
-	Server(const string &p) {
-		cout << p << endl;
-		filename = p;
+	Server(const string shared_mem, const string &problem) {
+		shared_mem_fpath = shared_mem;
+		problem_fpath = problem;
+
+		read_problem_file();
+
+		break_set_in_subsets();
 
         //create or open map file
         struct shared *ptr;   
-        ptr = initializa_mapper(filename);
+        ptr = initializa_mapper(shared_mem_fpath);
 
         /* initialize semaphore that is shared between processes */ 
         sem_init(&ptr->mutex,1, 1); 
@@ -53,6 +62,81 @@ class Server: public BasicSSP {
 
 		/* cria thread para receber comandos de Servents */
 		pthread_create(&expect_cmds_thread, NULL, &Server::expect_cmds, NULL);
+	}
+
+	static void check_valid_number(string &s) {
+		if(s.size() == 0) {
+			cout << "Can not accept a zero length number" << endl;
+			exit(-1);
+		}
+		for(int i=0; i<s.size(); i++) {
+			if(s[i] < '0' or s[i] > '9') {
+				cout << "Invalid number string: " << s << " size: " << s.size() << endl;
+				exit(-1);
+			}
+		}
+	}
+
+	static void break_set_in_subsets() {
+		for(int i=0; i < ceil((float)set.size() / (float)SUBSET_SIZE); i++) {
+			Subset s;
+			s.status = SUBSET_NOT_READY;
+			s.start = i*SUBSET_SIZE;
+			if(i*SUBSET_SIZE + SUBSET_SIZE >= set.size())
+				s.end = set.size() - 1;
+			else
+				s.end = i*SUBSET_SIZE + SUBSET_SIZE - 1;
+			std::ostringstream stm;
+		    stm	<< i + 1;
+			string piece = stm.str();
+			Server::subsets.insert(make_pair(piece, s));
+			cout << "INSERTING SUBSET: " << i << " START: " << s.start;
+			cout << " END: " << s.end << endl;
+		}
+	}
+
+	/* leitura do problema subset em arquivo */
+	static void read_problem_file() {
+		string subset_problem;
+		FILE *fd = fopen(problem_fpath.c_str(), "r");
+		if(fd == NULL) {
+			perror("Could not open subset input file");
+			exit(-1);
+		}
+		// read set: "n1,n2,n3,n4,n5,n6;"
+		string number;
+		cout << "SET: ";
+		while(true) {
+			char c;
+			int read_byte = fread(&c, 1, sizeof(char), fd);
+			if(read_byte <= 0) {
+				cout << "Error reading problem file - not a valid one" << endl;
+				exit(-1);
+			}
+			if(c == ',' or c == ';') {
+				check_valid_number(number);
+				set.push_back(number);
+				cout << number << " " ;
+				number.clear();
+				if(c == ';')
+					break;
+			} else {
+				number.push_back(c);
+			}
+		}
+		cout << endl;
+		// read sum
+		while(true) {
+			char c;
+			int read_byte = fread(&c, 1, sizeof(char), fd);
+			if(read_byte != 1)
+				break;
+			if(c != '\n')
+				sum.push_back(c);
+		}
+		check_valid_number(sum);
+		cout << "SUM: " << sum << endl;
+		fclose(fd);
 	}
 
 	static void* expect_cmds(void *func) {
@@ -100,16 +184,47 @@ class Server: public BasicSSP {
 			// cliente já fez join antes ...
 			answer = "You are ALREADY registered on this server" ;
 		} else {
-			string key = ip;
+			string key, subset, piece;
+			int start, end;
 			ClientData data;
-			Server::clients.insert(make_pair(key, data));
-			answer = "OK;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20;50;" + filename + ";1"; //[status,subset,sum,filename,piece]
+			Server::clients.insert(make_pair(ip, data));
+			answer = "OK";
 		}
 	}
 
 	static void process_publish(const string &ip, string &answer) {
 		if(Server::clients.count(ip) > 0) {           
 			answer = "OK";
+			// pegar primeiro subset NOT_READY e mandar pro cliente
+			map<string, Subset>::iterator it;
+			for(it=subsets.begin(); it != subsets.end(); it++) {
+				piece = it->first;
+				if(it->second.status == SUBSET_NOT_READY) {
+					it->second.responsible = ip;
+
+					start=it->second.start;
+					end = it->second.end;
+					break;
+				}
+			}
+			
+			// build subset to send
+			list<string>::iterator set_it;
+			int index = 0;
+			for(set_it=set.begin(); set_it != set.end(); set_it++) {
+				if(index > end)
+					break;
+				if(index >= start and index <= end) {
+					if(index != start)
+						subset += ",";
+					subset += *set_it;
+				}
+				index += 1;
+			}
+			
+			//       [status ; subset ; sum ; shared_mem_file ; piece]
+			answer = "OK;" + subset + ";" + sum + ";" + shared_mem_fpath + ";" + piece; 
+
 		} else {
 			answer = "You are NOT registered on this server";
 		}
@@ -188,15 +303,19 @@ class Server: public BasicSSP {
 };
 
 map<std::string, ClientData> Server::clients;
-string Server::filename;
+map<std::string, Subset> Server::subsets;
+string Server::shared_mem_fpath;
+string Server::problem_fpath;
+string Server::sum;
+list<string> Server::set;
 
 int main(int argc, char *argv[]) {	
-	if(argc != 2) {
-		cout << "usage: " << argv[0] << " shared_file_dir" << endl;
+	if(argc != 3) {
+		cout << "usage: " << argv[0] << " shared_mem_file input_problem_file" << endl;
 		exit(-1);
 	}
-	string filename(argv[1]);
-	Server server(filename);
+	string shared_mem_fpath(argv[1]), problem_fpath(argv[2]);
+	Server server(shared_mem_fpath, problem_fpath);
 	cout << "GET TO WORK !\n" ;
 	sleep(20);
 	server.stop_clients();

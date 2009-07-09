@@ -32,15 +32,17 @@ class Client: public BasicSSP {
 	Client(const string &ip) {
 		server_ip = ip;
 
-		/* faz join no servidor e publica seus arquivos */
-		join();
-		publish();
-	
 		/* thread para envio de pacotes alive */
 		pthread_create(&alive_thread, NULL, &Client::alive, (void*)server_ip.c_str());
 
 		/* cria thread para receber comandos do servidor */
 		pthread_create(&expect_cmds_thread, NULL, &Client::expect_cmds, NULL);
+
+		/* faz join no servidor e publica seus arquivos */
+		join();
+		while(true) {
+			publish();
+		}
 	};
 
 	static void* expect_cmds(void *func) {
