@@ -23,7 +23,7 @@ class Solver {
 public:  
     Solver (vector<int> set_init, int sum_init, shared *solution_init, int piece_init);
     void do_it();
-    static void solver_process(string filename, string subset, int sum, int piece);
+    static int solver_process(string filename, string subset, int sum, int piece);
     static void* solver_thread(void* params);
 
 private:  

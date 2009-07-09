@@ -115,8 +115,10 @@ void* Solver::solver_thread(void* params) {
     pthread_exit(NULL);
 };
 
-void Solver::solver_process(string filename, string subset, int sum, int piece) {
+int Solver::solver_process(string filename, string subset, int sum, int piece) {
     cout << "GET TO SUBSOLVER !\n";
+	sleep(5);
+	return 10;
     int child;
 
     //create mmap shared memory file
@@ -145,6 +147,7 @@ void Solver::solver_process(string filename, string subset, int sum, int piece) 
         data[i].sum = sum;
         data[i].solution = ptr;
     }
+
 
     if ((child=fork()) == 0) { // child, (child=fork()) == 0
         //Create pthread var
@@ -182,4 +185,5 @@ void Solver::solver_process(string filename, string subset, int sum, int piece) 
     cout << "JOIN FORK! \n";
 	
     pthread_attr_destroy(&attr);
+	return(0);
 }

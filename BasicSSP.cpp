@@ -17,6 +17,7 @@ void BasicSSP::StringSplit(string str, string delim, vector<string> *results) {
 }
 
 void BasicSSP::StringSplit(string str, string delim, vector<int> *results) {
+	//cout << "split begin" << endl;
 	int cutAt;
 	while( (cutAt = str.find_first_of(delim)) != (int)str.npos ) {
 		if(cutAt > 0)
@@ -28,6 +29,7 @@ void BasicSSP::StringSplit(string str, string delim, vector<int> *results) {
 	if(str.length() > 0) {
 		results->push_back(atoi(str.c_str()));
 	}
+	//cout << "split end" << endl;
 }
 
 void BasicSSP::send_data_to(const string &address, int port, 

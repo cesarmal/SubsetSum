@@ -19,7 +19,6 @@
  */
 class Server: public BasicSSP {
 	
-	char server_ip[30];
 	pthread_t receive_hellos_thread;
 	pthread_t remove_dead_clients_thread;
 	pthread_t expect_cmds_thread;
@@ -34,10 +33,12 @@ class Server: public BasicSSP {
 	static map<string, Subset> subsets;
 	static list<string> set;
 	static string sum;
+	static string server_ip;
 
 	public:
 
-	Server(const string shared_mem, const string &problem) {
+	Server(const string &ip, const string shared_mem, const string &problem) {
+		server_ip = ip;
 		shared_mem_fpath = shared_mem;
 		problem_fpath = problem;
 
@@ -151,7 +152,7 @@ class Server: public BasicSSP {
 						std::string ip;
 						new_sock >> data;
 						server.get_ip(ip);
-						cout << "IP: " << ip << endl;
+						//cout << "IP: " << ip << endl;
 						string answer;
 						Server::process_cmd(ip, data, answer);
 						new_sock << answer;
@@ -184,7 +185,6 @@ class Server: public BasicSSP {
 			// cliente já fez join antes ...
 			answer = "You are ALREADY registered on this server" ;
 		} else {
-			string key, subset, piece;
 			int start, end;
 			ClientData data;
 			Server::clients.insert(make_pair(ip, data));
@@ -192,46 +192,68 @@ class Server: public BasicSSP {
 		}
 	}
 
-	static void process_publish(const string &ip, string &answer) {
+	static int process_get_subset(const string &ip, string &answer) {
+		// pegar primeiro subset NOT_READY e mandar pro cliente
+		map<string, Subset>::iterator it;
+		string subset, piece;
+		bool found_subset=false;
+		int start, end;
+		for(it=subsets.begin(); it != subsets.end(); it++) {
+			piece = it->first;
+			if(it->second.status == SUBSET_NOT_READY) {
+				it->second.responsible = ip;
+
+				start=it->second.start;
+				end = it->second.end;
+				found_subset = true;
+				break;
+			}
+		}
+
+		if(!found_subset) {
+			answer = "NO MORE SUBSETS";
+			return -1;
+		}
+		
+		// build subset to send
+		list<string>::iterator set_it;
+		int index = 0;
+		for(set_it=set.begin(); set_it != set.end(); set_it++) {
+			if(index > end)
+				break;
+			if(index >= start and index <= end) {
+				if(index != start)
+					subset += ",";
+				subset += *set_it;
+			}
+			index += 1;
+		}
+		
+		//       [status ; subset ; sum ; shared_mem_file ; piece]
+		answer = "OK;" + subset + ";" + sum + ";" + shared_mem_fpath + ";" + piece; 
+		return 0;
+	}
+
+	static void process_publish(const string &ip, const string &data, string &answer) {
 		if(Server::clients.count(ip) > 0) {           
+			// "P;piece;status" (status é: FOUND, NOT_FOUND)
+			vector<string> cmd_parts;
+			StringSplit(data,";", &cmd_parts);
+			string piece = cmd_parts[1];	
+			if(cmd_parts[2] == "NOT_FOUND") {
+				subsets[piece].status = SUBSET_READY;
+			} else {
+				cout << "FOUND !!!! said client " << ip << endl;
+				//stop_clients();
+				exit(0);
+			}
 			answer = "OK";
-			// pegar primeiro subset NOT_READY e mandar pro cliente
-			map<string, Subset>::iterator it;
-			for(it=subsets.begin(); it != subsets.end(); it++) {
-				piece = it->first;
-				if(it->second.status == SUBSET_NOT_READY) {
-					it->second.responsible = ip;
-
-					start=it->second.start;
-					end = it->second.end;
-					break;
-				}
-			}
-			
-			// build subset to send
-			list<string>::iterator set_it;
-			int index = 0;
-			for(set_it=set.begin(); set_it != set.end(); set_it++) {
-				if(index > end)
-					break;
-				if(index >= start and index <= end) {
-					if(index != start)
-						subset += ",";
-					subset += *set_it;
-				}
-				index += 1;
-			}
-			
-			//       [status ; subset ; sum ; shared_mem_file ; piece]
-			answer = "OK;" + subset + ";" + sum + ";" + shared_mem_fpath + ";" + piece; 
-
 		} else {
 			answer = "You are NOT registered on this server";
 		}
 	}
 
 	static void process_cmd(const string &ip, const string &data, string &answer) {
-		cout << data[0] << endl;
 		switch(data[0]) {
 			case 'J':
 				{
@@ -239,11 +261,22 @@ class Server: public BasicSSP {
 					process_join(ip, answer);
 					break;
 				}
+			case 'G':
+				{
+					cout << "Command get_subset received" << endl;
+					process_get_subset(ip, answer);
+					break;
+				}
 			case 'P':
 				{
 					cout << "Command publish received" << endl;
-					process_publish(ip, answer);
+					process_publish(ip, data, answer);
 					break;
+				}
+			default:
+				{
+					cout << "Unknown command " << data[0] << " from " << ip << endl;
+					exit(-1);
 				}
 		}
 	}
@@ -262,7 +295,7 @@ class Server: public BasicSSP {
 		memset(&servAddr,0,sizeof(servAddr));
 		memset(&cliAddr,0,sizeof(cliAddr));
 		servAddr.sin_family=AF_INET;
-		servAddr.sin_addr.s_addr=inet_addr("127.0.0.1");
+		servAddr.sin_addr.s_addr=inet_addr(Server::server_ip.c_str());
 		servAddr.sin_port=htons(HELLO_PORT);
 		int cliAddrLen=sizeof(struct sockaddr_in);
 		int bindRet=bind(iSockFd,(struct sockaddr*)&servAddr,sizeof(servAddr));
@@ -307,17 +340,18 @@ map<std::string, Subset> Server::subsets;
 string Server::shared_mem_fpath;
 string Server::problem_fpath;
 string Server::sum;
+string Server::server_ip;
 list<string> Server::set;
 
 int main(int argc, char *argv[]) {	
-	if(argc != 3) {
-		cout << "usage: " << argv[0] << " shared_mem_file input_problem_file" << endl;
+	if(argc != 4) {
+		cout << "usage: " << argv[0] << " listen_on_ip shared_mem_file input_problem_file" << endl;
 		exit(-1);
 	}
-	string shared_mem_fpath(argv[1]), problem_fpath(argv[2]);
-	Server server(shared_mem_fpath, problem_fpath);
+	string server_ip(argv[1]), shared_mem_fpath(argv[2]), problem_fpath(argv[3]);
+	Server server(server_ip, shared_mem_fpath, problem_fpath);
 	cout << "GET TO WORK !\n" ;
-	sleep(20);
+	sleep(10000000);
 	server.stop_clients();
 	return 0;
 }

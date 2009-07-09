@@ -51,7 +51,7 @@ using namespace std;
  * um HELLO packet para o servidor para identificar
  * que ainda está ativo.
  **************************************************/  
-#define MAX_HELLO_INTERVAL 30
+#define MAX_HELLO_INTERVAL 10
 
 #define MAX_SOLUTION_MAP 1000
 #define MAX_HASH_SIZE 30
@@ -71,7 +71,7 @@ struct shared {
 class BasicSSP  {
 
   public:
-		void StringSplit(string str, string delim, vector<string> *results);
+		static void StringSplit(string str, string delim, vector<string> *results);
 		void StringSplit(string str, string delim, vector<int> *results);
 		void send_data_to(const string &, int ,	const char *, string &);
 		bool file_exists(string filename);
