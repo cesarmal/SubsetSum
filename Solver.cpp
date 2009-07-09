@@ -117,8 +117,6 @@ void* Solver::solver_thread(void* params) {
 
 int Solver::solver_process(string filename, string subset, int sum, int piece) {
     cout << "GET TO SUBSOLVER !\n";
-	sleep(5);
-	return 10;
     int child;
 
     //create mmap shared memory file
